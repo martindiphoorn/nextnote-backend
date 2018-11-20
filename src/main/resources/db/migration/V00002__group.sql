@@ -1,0 +1,15 @@
+CREATE TABLE `notegroup` (
+  id   BIGINT NOT NULL AUTO_INCREMENT,
+  name VARCHAR(50) NOT NULL,
+  CONSTRAINT `PRIMARY` PRIMARY KEY (id)
+)
+  ENGINE = InnoDB
+  DEFAULT CHARSET = utf8
+  COLLATE = utf8_general_ci;
+
+ALTER TABLE `note`
+  ADD groupId BIGINT;
+
+ALTER TABLE `note`
+  ADD CONSTRAINT FK_NoteGroup
+  FOREIGN KEY (groupId) REFERENCES notegroup(id);
