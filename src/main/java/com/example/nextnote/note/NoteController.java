@@ -9,15 +9,19 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 public class NoteController {
 
+	private final NoteMapper noteMapper;
+
 	private final NoteRepository noteRepository;
 
 	/**
-	 * Spring will automatically inject the noteRepository
+	 * Spring will automatically inject the mapper and the repository
 	 *
+	 * @param noteMapper
 	 * @param noteRepository
 	 */
 	@Autowired
-	public NoteController(NoteRepository noteRepository) {
+	public NoteController(NoteMapper noteMapper, NoteRepository noteRepository) {
+		this.noteMapper = noteMapper;
 		this.noteRepository = noteRepository;
 	}
 
@@ -27,8 +31,9 @@ public class NoteController {
 	 * @return
 	 */
 	@RequestMapping(value = "/notes", method = RequestMethod.GET)
-	public List<Note> all() {
-		return this.noteRepository.findAll();
+	public List<NoteDto> all() {
+		List<Note> notes = this.noteRepository.findAll();
+		return noteMapper.toDto(notes);
 	}
 
 	/**
@@ -38,39 +43,42 @@ public class NoteController {
 	 * @return
 	 */
 	@RequestMapping(value = "/notes/{id}", method = RequestMethod.GET)
-	public Note one(@PathVariable("id") Long id) {
-		return this.noteRepository.findById(id).orElse(null);
+	public NoteDto one(@PathVariable("id") Long id) {
+		return this.noteRepository.findById(id).map(noteMapper::toDto).orElse(null);
+
 	}
 
 	/**
 	 * Create a new note
 	 *
-	 * @param note
+	 * @param noteDto
 	 * @return
 	 */
 	@RequestMapping(value = "/notes", method = RequestMethod.POST)
-	public Note create(@RequestBody Note note) {
+	public NoteDto create(@RequestBody NoteDto noteDto) {
+		Note note = new Note();
 		note.setId(null); // There should not be an id when creating a new record
+		noteMapper.toEntity(noteDto, note); // The mapper will copy all values from the dto
 		this.noteRepository.save(note);
-		return note;
+		return noteMapper.toDto(note);
 	}
 
 	/**
 	 * Update the note with the given id
 	 *
 	 * @param id
-	 * @param note
+	 * @param noteDto
 	 * @return
 	 */
 	@RequestMapping(value = "/notes/{id}", method = RequestMethod.PUT)
-	public Note update(@PathVariable("id") Long id, @RequestBody Note note) {
+	public NoteDto update(@PathVariable("id") Long id, @RequestBody NoteDto noteDto) {
 		// Retrieve the note by the id
 		Optional<Note> optionalNote = this.noteRepository.findById(id);
 		if (optionalNote.isPresent()) {
-			Note dbNote = optionalNote.get();
-			dbNote.setName(note.getName());
-			this.noteRepository.save(dbNote);
-			return dbNote;
+			Note note = optionalNote.get();
+			noteMapper.toEntity(noteDto, note);
+			this.noteRepository.save(note);
+			return noteMapper.toDto(note);
 		}
 
 		return null;
